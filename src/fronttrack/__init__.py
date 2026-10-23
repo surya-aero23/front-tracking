@@ -40,6 +40,7 @@ from .flux import (
 )
 from .fronts import Front
 from .initial_data import PiecewiseConstant, riemann_data
+from .plotting import plot_fronts, plot_snapshot
 from .riemann import Wave, solve_riemann
 from .solution import Interaction, Solution
 from .solver import FrontTracker
@@ -68,6 +69,8 @@ __all__ = [
     "lower_convex_envelope",
     "mass_defect",
     "oleinik_admissible",
+    "plot_fronts",
+    "plot_snapshot",
     "polynomial_bump",
     "rankine_hugoniot_ok",
     "riemann_data",
