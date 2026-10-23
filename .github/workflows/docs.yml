@@ -2,7 +2,7 @@ name: docs
 
 on:
   push:
-    branches: [main]
+    branches: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -30,7 +30,8 @@ jobs:
           path: docs/_build/html
 
   deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Deploy from the default branch, which holds the current release.
+    if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
     needs: build
     runs-on: ubuntu-latest
     environment:

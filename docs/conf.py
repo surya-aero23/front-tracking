@@ -45,7 +45,7 @@ html_theme = "furo"
 html_title = "fronttrack"
 html_theme_options = {
     "source_repository": "https://github.com/surya-aero23/front-tracking",
-    "source_branch": "main",
+    "source_branch": "v26.10.23",
     "source_directory": "docs/",
 }
 copybutton_prompt_text = r">>> |\.\.\. "
