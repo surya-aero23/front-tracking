@@ -155,4 +155,7 @@ def uniform_nodes(u_min, u_max, delta, extra=()) -> list[Fraction]:
     last = (u_max / delta).__ceil__()
     nodes = {Fraction(j) * delta for j in range(first, last + 1)}
     nodes.update(as_fraction(value) for value in extra)
+    if len(nodes) < 2:
+        # Constant data: a polygonal flux still needs an interval of states.
+        nodes.add(max(nodes) + delta)
     return sorted(nodes)
