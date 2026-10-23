@@ -11,9 +11,11 @@ dependencies = ["numpy", "matplotlib"]
 
 [project.optional-dependencies]
 dev = ["pytest", "hypothesis"]
+docs = ["sphinx>=7", "furo", "sphinx-copybutton"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "docs", "src"]
+addopts = "--doctest-modules --doctest-glob=*.rst --ignore=docs/conf.py"

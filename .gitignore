@@ -227,3 +227,6 @@ report/*.out
 report/*.synctex.gz
 report/*.toc
 report/main.pdf
+
+# Local editor/agent settings
+.claude/

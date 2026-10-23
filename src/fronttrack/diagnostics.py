@@ -208,7 +208,7 @@ def weak_form_residual(solution: Solution, test_function: TestFunction,
             space_time += float(half) * weight * space_integral(t, "bulk")
 
     initial_term = space_integral(Fraction(0), "initial") if t_start == 0.0 else 0.0
-    return space_time + initial_term
+    return float(space_time + initial_term)
 
 
 @dataclass(frozen=True)

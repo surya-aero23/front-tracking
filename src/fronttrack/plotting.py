@@ -72,11 +72,14 @@ def plot_snapshot(solution: Solution, t, ax, xlim, reference=None, **kwargs):
     state = solution.state_at(t)
     a, b = (as_fraction(value) for value in xlim)
     edges = [a] + [x for x in state.breakpoints if a < x < b] + [b]
-    label = kwargs.pop("label", None)
+    # One connected line, so that the staircase gets one colour and one
+    # legend entry; the vertical pieces are the jumps.
+    xs, ys = [], []
     for left, right in zip(edges, edges[1:]):
         value = float(state((left + right) / 2))
-        ax.plot([float(left), float(right)], [value, value], label=label, **kwargs)
-        label = None
+        xs += [float(left), float(right)]
+        ys += [value, value]
+    ax.plot(xs, ys, **kwargs)
     if reference is not None:
         grid = np.linspace(float(a), float(b), 601)
         ax.plot(

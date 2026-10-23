@@ -48,9 +48,10 @@ def test_plot_snapshot_draws_the_staircase_and_the_reference():
     _, ax = plt.subplots()
     plot_snapshot(solution, 1, ax, xlim=(-2, 3),
                   reference=exact_riemann_solution(0, 1), label="tracked")
-    # One segment per cell, plus the reference curve.
-    assert len(ax.lines) == len(solution.state_at(1).values) + 1
-    # The label is attached to the first segment only, so the legend has one
-    # entry for the tracked solution rather than one per cell.
+    # The staircase is one line (one colour, one legend entry), plus the
+    # reference curve.
+    assert len(ax.lines) == 2
     assert ax.get_legend_handles_labels()[1] == ["tracked", "exact"]
+    staircase = ax.lines[0]
+    assert len(staircase.get_xdata()) == 2 * len(solution.state_at(1).values)
     plt.close("all")
