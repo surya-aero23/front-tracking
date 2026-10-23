@@ -44,7 +44,7 @@ html_static_path = ["_static"]
 html_theme = "furo"
 html_title = "fronttrack"
 html_theme_options = {
-    "source_repository": "https://github.com/surya-aero23/front-tracking-burgers",
+    "source_repository": "https://github.com/surya-aero23/front-tracking",
     "source_branch": "main",
     "source_directory": "docs/",
 }

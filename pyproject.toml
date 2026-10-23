@@ -33,9 +33,9 @@ classifiers = [
 ]
 
 [project.urls]
-Documentation = "https://surya-aero23.github.io/front-tracking-burgers/"
-Source = "https://github.com/surya-aero23/front-tracking-burgers"
-Issues = "https://github.com/surya-aero23/front-tracking-burgers/issues"
+Documentation = "https://surya-aero23.github.io/front-tracking/"
+Source = "https://github.com/surya-aero23/front-tracking"
+Issues = "https://github.com/surya-aero23/front-tracking/issues"
 
 [project.optional-dependencies]
 dev = ["pytest", "hypothesis"]

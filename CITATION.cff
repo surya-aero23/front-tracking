@@ -6,8 +6,8 @@ authors:
 version: 0.2.0
 date-released: 2026-10-23
 license: MIT
-repository-code: "https://github.com/surya-aero23/front-tracking-burgers"
-url: "https://surya-aero23.github.io/front-tracking-burgers/"
+repository-code: "https://github.com/surya-aero23/front-tracking"
+url: "https://surya-aero23.github.io/front-tracking/"
 keywords:
   - conservation laws
   - front tracking

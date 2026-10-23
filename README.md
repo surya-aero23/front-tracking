@@ -1,7 +1,7 @@
 # fronttrack
 
-[![tests](https://github.com/surya-aero23/front-tracking-burgers/actions/workflows/tests.yml/badge.svg)](https://github.com/surya-aero23/front-tracking-burgers/actions/workflows/tests.yml)
-[![docs](https://github.com/surya-aero23/front-tracking-burgers/actions/workflows/docs.yml/badge.svg)](https://surya-aero23.github.io/front-tracking-burgers/)
+[![tests](https://github.com/surya-aero23/front-tracking/actions/workflows/tests.yml/badge.svg)](https://github.com/surya-aero23/front-tracking/actions/workflows/tests.yml)
+[![docs](https://github.com/surya-aero23/front-tracking/actions/workflows/docs.yml/badge.svg)](https://surya-aero23.github.io/front-tracking/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Exact front tracking for one-dimensional scalar conservation laws**
@@ -17,7 +17,7 @@ exact rational arithmetic, with no time step and no tolerance.
 
 ![Box data for Burgers' equation](docs/_static/readme.png)
 
-**Documentation:** <https://surya-aero23.github.io/front-tracking-burgers/>
+**Documentation:** <https://surya-aero23.github.io/front-tracking/>
 
 ## Features
 
@@ -39,8 +39,8 @@ exact rational arithmetic, with no time step and no tolerance.
 ## Installation
 
 ```bash
-git clone https://github.com/surya-aero23/front-tracking-burgers.git
-cd front-tracking-burgers
+git clone https://github.com/surya-aero23/front-tracking.git
+cd front-tracking
 pip install -e ".[dev]"
 ```
 
@@ -84,8 +84,8 @@ Fraction(0, 1)
 
 ```
 
-See the [user guide](https://surya-aero23.github.io/front-tracking-burgers/guide.html)
-and the [examples](https://surya-aero23.github.io/front-tracking-burgers/examples.html).
+See the [user guide](https://surya-aero23.github.io/front-tracking/guide.html)
+and the [examples](https://surya-aero23.github.io/front-tracking/examples.html).
 
 ## Repository layout
 
