@@ -49,6 +49,16 @@ class Flux(ABC):
         """
         return np.vectorize(lambda value: float(self.f(value)))(u)
 
+    def df_array(self, u: np.ndarray) -> np.ndarray:
+        """``f'`` on an array of floats, for the numerical exact solutions.
+
+        The default is a central difference of :meth:`f_array`; subclasses
+        override it with the closed form.
+        """
+        u = np.asarray(u, dtype=float)
+        step = 1e-6 * np.maximum(1.0, np.abs(u))
+        return (self.f_array(u + step) - self.f_array(u - step)) / (2 * step)
+
 
 class Burgers(Flux):
     """Burgers' flux ``f(u) = u^2 / 2``; strictly convex."""
@@ -66,6 +76,9 @@ class Burgers(Flux):
     def f_array(self, u: np.ndarray) -> np.ndarray:
         return 0.5 * u * u
 
+    def df_array(self, u: np.ndarray) -> np.ndarray:
+        return np.asarray(u, dtype=float)
+
 
 class ConcaveBurgers(Flux):
     """``f(u) = -u^2 / 2``; strictly concave, so the wave rules are reversed."""
@@ -82,6 +95,9 @@ class ConcaveBurgers(Flux):
 
     def f_array(self, u: np.ndarray) -> np.ndarray:
         return -0.5 * u * u
+
+    def df_array(self, u: np.ndarray) -> np.ndarray:
+        return -np.asarray(u, dtype=float)
 
 
 class BuckleyLeverett(Flux):
@@ -105,9 +121,20 @@ class BuckleyLeverett(Flux):
             raise ValueError("Buckley-Leverett flux is singular at this state")
         return u * u / denominator
 
+    def df(self, u) -> Fraction:
+        u = as_fraction(u)
+        denominator = u * u + self.mobility * (1 - u) ** 2
+        return 2 * self.mobility * u * (1 - u) / denominator ** 2
+
     def f_array(self, u: np.ndarray) -> np.ndarray:
         mobility = float(self.mobility)
         return u * u / (u * u + mobility * (1 - u) ** 2)
+
+    def df_array(self, u: np.ndarray) -> np.ndarray:
+        mobility = float(self.mobility)
+        u = np.asarray(u, dtype=float)
+        denominator = u * u + mobility * (1 - u) ** 2
+        return 2 * mobility * u * (1 - u) / denominator ** 2
 
 
 class PolygonalFlux(Flux):
