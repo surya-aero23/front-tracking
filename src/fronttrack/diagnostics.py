@@ -186,16 +186,20 @@ def weak_form_residual(solution: Solution, test_function: TestFunction,
     return space_time + initial_term
 
 
-def l1_error(solution: Solution, reference, t, window, resolution=4000) -> float:
+def l1_error(solution: Solution, reference, t, window, resolution=4000,
+             extra_breaks=()) -> float:
     """The ``L^1`` distance to a reference solution at time ``t``.
 
     ``reference`` is a callable ``u(x, t)``.  The window is subdivided at the
-    fronts of the computed solution and a composite midpoint rule is used on
-    each piece, which copes with the kinks of the reference solution.
+    fronts of the computed solution, and at any ``extra_breaks`` given -- the
+    kinks of the reference solution, typically -- and a composite midpoint
+    rule is used on each piece.  Passing the reference kinks makes the result
+    exact whenever both functions are piecewise linear between them.
     """
     state = solution.state_at(t)
     a, b = (float(value) for value in window)
-    edges = [a] + [float(x) for x in state.breakpoints if a < float(x) < b] + [b]
+    interior = {float(x) for x in state.breakpoints} | {float(x) for x in extra_breaks}
+    edges = [a] + sorted(x for x in interior if a < x < b) + [b]
     t_float = float(t)
     total = 0.0
     per_piece = max(2, resolution // max(1, len(edges) - 1))
