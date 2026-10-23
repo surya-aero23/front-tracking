@@ -47,9 +47,11 @@ def _is_shock(solution: Solution, front, samples=7) -> bool:
 def plot_fronts(solution: Solution, ax, xlim=None, show_interactions=True):
     """Draw the fronts of ``solution`` as segments in the x-t plane."""
     for front in solution.fronts:
-        (x0, t0), (x1, t1) = front.endpoints(solution.t_final)
         style = SHOCK_STYLE if _is_shock(solution, front) else RAREFACTION_STYLE
-        ax.plot([float(x0), float(x1)], [float(t0), float(t1)], **style)
+        for (x0, t0), (x1, t1) in solution.domain.split_segment(
+            front.endpoints(solution.t_final)
+        ):
+            ax.plot([float(x0), float(x1)], [float(t0), float(t1)], **style)
     if show_interactions and solution.interactions:
         ax.plot(
             [float(event.position) for event in solution.interactions],

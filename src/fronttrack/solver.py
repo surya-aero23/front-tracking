@@ -10,6 +10,11 @@ whose solution replaces the colliding fronts.
 Because all arithmetic is exact, collision times are found without tolerances
 and simultaneous collisions -- including collisions of three or more fronts at
 one point -- are detected as equalities.
+
+The geometry is delegated to a :class:`~fronttrack.domain.Domain`.  On the
+real line the fronts form a chain; on a periodic domain the chain is closed
+into a ring, and the pair (tail, head) is one more pair of neighbours whose
+gap crosses the seam.
 """
 
 from __future__ import annotations
@@ -27,7 +32,11 @@ from .solution import Interaction, Solution
 
 
 class FrontTracker:
-    """Front tracking for ``u_t + f(u)_x = 0`` with piecewise constant data."""
+    """Front tracking for ``u_t + f(u)_x = 0`` with piecewise constant data.
+
+    ``domain`` is the :class:`~fronttrack.domain.RealLine` by default; pass a
+    :class:`~fronttrack.domain.Periodic` for periodic data.
+    """
 
     def __init__(self, flux: Flux, delta, domain: Domain | None = None):
         self.base_flux = flux
@@ -62,10 +71,10 @@ class FrontTracker:
 class _Run:
     """The mutable state of one call to :meth:`FrontTracker.solve`.
 
-    Fronts are held in a doubly linked list in spatial order, and candidate
-    collisions in a priority queue.  Queue entries are never removed: an entry
-    is simply ignored when it refers to a dead front or to a pair that is no
-    longer adjacent.
+    Fronts are held in a doubly linked list in spatial order -- closed into a
+    ring on a periodic domain -- and candidate collisions in a priority
+    queue.  Queue entries are never removed: an entry is simply ignored when
+    it refers to a dead front or to a pair that is no longer adjacent.
     """
 
     def __init__(self, flux: PolygonalFlux, domain: Domain,
@@ -92,11 +101,9 @@ class _Run:
         return front
 
     def seed_initial_fronts(self) -> None:
-        """Solve a Riemann problem at every breakpoint of the initial data."""
+        """Solve a Riemann problem at every jump of the initial data."""
         chain: list[Front] = []
-        for position, uL, uR in zip(
-            self.data.breakpoints, self.data.values, self.data.values[1:]
-        ):
+        for position, uL, uR in self.domain.initial_jumps(self.data):
             for wave in solve_riemann(uL, uR, self.flux):
                 chain.append(
                     self._new_front(position, Fraction(0), wave.speed, wave.uL, wave.uR)
@@ -104,7 +111,11 @@ class _Run:
         self._link(chain)
         self.head = chain[0] if chain else None
         self.tail = chain[-1] if chain else None
-        for left, right in zip(chain, chain[1:]):
+        pairs = list(zip(chain, chain[1:]))
+        if self.domain.wraps_around() and chain:
+            self.tail.next, self.head.previous = self.head, self.tail
+            pairs.append((self.tail, self.head))
+        for left, right in pairs:
             self._schedule(left, right, Fraction(0))
 
     @staticmethod
@@ -116,7 +127,8 @@ class _Run:
     # -- event queue -----------------------------------------------------
 
     def _schedule(self, left: Front, right: Front, t_now) -> None:
-        time = self.domain.collision_time(left, right, t_now)
+        across_seam = self.domain.wraps_around() and right is self.head
+        time = self.domain.collision_time(left, right, t_now, across_seam)
         if time is None or time > self.t_final:
             return
         self._counter += 1
@@ -140,29 +152,47 @@ class _Run:
         of nearly simultaneous pair collisions.
         """
         position = self.domain.position(left, time)
+
+        def joins(front: Front | None) -> bool:
+            # On a ring the search stops once it has gone all the way round.
+            return (front is not None and front is not group[0]
+                    and front is not group[-1]
+                    and self.domain.position(front, time) == position)
+
         group = [left, right]
-        while group[0].previous is not None and \
-                self.domain.position(group[0].previous, time) == position:
+        while joins(group[0].previous):
             group.insert(0, group[0].previous)
-        while group[-1].next is not None and \
-                self.domain.position(group[-1].next, time) == position:
+        while joins(group[-1].next):
             group.append(group[-1].next)
         return group
 
     def _resolve(self, time, left: Front, right: Front) -> None:
         group = self._collision_group(time, left, right)
         position = self.domain.position(left, time)
+        # New fronts start from the lifted position of the leftmost incoming
+        # front, which keeps lifted positions increasing along the chain.
+        lifted = group[0].position(time)
         before, after = group[0].previous, group[-1].next
+        whole_ring = self.domain.wraps_around() and after is group[0]
 
         for front in group:
             front.alive = False
             front.t_end = time
 
         replacements = [
-            self._new_front(position, time, wave.speed, wave.uL, wave.uR)
+            self._new_front(lifted, time, wave.speed, wave.uL, wave.uR)
             for wave in solve_riemann(group[0].uL, group[-1].uR, self.flux)
         ]
-        self._splice(before, replacements, after)
+        if whole_ring:
+            # Every front met at one point; going round the ring the states
+            # agree, so nothing is left and the solution is constant.
+            assert not replacements
+            self.head = self.tail = None
+            before = after = None
+        elif self.domain.wraps_around():
+            self._splice_ring(group, before, replacements, after)
+        else:
+            self._splice(before, replacements, after)
         self.interactions.append(
             Interaction(
                 time=time,
@@ -197,6 +227,22 @@ class _Run:
         if last is not None:
             last.next = after
 
+    def _splice_ring(self, group: list[Front], before: Front, middle: list[Front],
+                     after: Front) -> None:
+        """Splice on a ring, moving the head and tail if the group held them."""
+        head_in = any(front is self.head for front in group)
+        tail_in = any(front is self.tail for front in group)
+        self._splice(before, middle, after)
+        if head_in and group[0] is not self.head:
+            # The group straddles the seam.  The new fronts sit at the lifted
+            # position of its left part, so they close the chain as its tail.
+            self.head = after
+            self.tail = middle[-1] if middle else before
+        elif head_in:
+            self.head = middle[0] if middle else after
+        elif tail_in:
+            self.tail = middle[-1] if middle else before
+
     # -- result ----------------------------------------------------------
 
     def finish(self) -> Solution:
@@ -209,4 +255,5 @@ class _Run:
             fronts=tuple(self.all_fronts),
             interactions=tuple(self.interactions),
             t_final=self.t_final,
+            domain=self.domain,
         )

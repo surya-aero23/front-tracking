@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from fractions import Fraction
 
+from .domain import Domain, RealLine
 from .flux import PolygonalFlux
 from .fronts import Front
 from .initial_data import PiecewiseConstant
@@ -40,6 +41,7 @@ class Solution:
     fronts: tuple[Front, ...]
     interactions: tuple[Interaction, ...]
     t_final: Fraction
+    domain: Domain = field(default_factory=RealLine)
 
     @property
     def u_left(self) -> Fraction:
@@ -66,14 +68,17 @@ class Solution:
         if not 0 <= t <= self.t_final:
             raise ValueError(f"time {t} is outside [0, {self.t_final}]")
         active = [front for front in self.fronts if front.alive_at(t, self.t_final)]
-        active.sort(key=lambda front: (front.position(t), front.speed))
+        active.sort(key=lambda front: (self.domain.position(front, t), front.speed))
         return active
 
     def state_at(self, t) -> PiecewiseConstant:
-        """The solution at time ``t`` as a piecewise constant function."""
-        fronts = self.active_fronts(t)
-        jumps = [(front.position(t), front.uR) for front in fronts]
-        return PiecewiseConstant.from_jumps(self.u_left, jumps)
+        """The solution at time ``t`` as a piecewise constant function.
+
+        On a periodic domain this is the solution on one period, in the
+        representation of :class:`~fronttrack.domain.Periodic`.
+        """
+        t = as_fraction(t)
+        return self.domain.assemble(self.active_fronts(t), t, self.initial_data)
 
     def evaluate(self, x, t) -> Fraction:
         return self.state_at(t)(x)
@@ -86,5 +91,8 @@ class Solution:
         return self.state_at(t).mass(a, b)
 
     def segments(self) -> list[tuple[tuple[Fraction, Fraction], tuple[Fraction, Fraction]]]:
-        """Every front as a segment in the x-t plane, for plotting."""
-        return [front.endpoints(self.t_final) for front in self.fronts]
+        """Every front as segments in the x-t plane, cut to the domain."""
+        pieces = []
+        for front in self.fronts:
+            pieces += self.domain.split_segment(front.endpoints(self.t_final))
+        return pieces

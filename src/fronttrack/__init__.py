@@ -22,7 +22,7 @@ from .diagnostics import (
     weak_form_residual,
 )
 from .counterexamples import expansion_shock
-from .domain import Domain, RealLine
+from .domain import Domain, Periodic, RealLine
 from .entropy import (
     is_admissible,
     kruzkov_admissible,
@@ -68,6 +68,7 @@ __all__ = [
     "FrontTracker",
     "GodunovSolver",
     "Interaction",
+    "Periodic",
     "PiecewiseConstant",
     "PolygonalFlux",
     "RealLine",
