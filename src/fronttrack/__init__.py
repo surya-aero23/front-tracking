@@ -21,6 +21,7 @@ from .diagnostics import (
     polynomial_bump,
     weak_form_residual,
 )
+from .counterexamples import expansion_shock
 from .domain import Domain, RealLine
 from .entropy import (
     is_admissible,
@@ -31,7 +32,14 @@ from .entropy import (
 )
 from .envelope import lower_convex_envelope, upper_concave_envelope
 from .exact import exact_box_solution, exact_riemann_solution
-from .finite_volume import FiniteVolumeSolution, GodunovSolver, godunov_flux
+from .finite_volume import (
+    FiniteVolumeSolution,
+    FiniteVolumeSolver,
+    GodunovSolver,
+    RoeSolver,
+    godunov_flux,
+    roe_flux,
+)
 from .flux import (
     BuckleyLeverett,
     Burgers,
@@ -53,6 +61,7 @@ __all__ = [
     "ConcaveBurgers",
     "Domain",
     "FiniteVolumeSolution",
+    "FiniteVolumeSolver",
     "Flux",
     "Front",
     "FrontReport",
@@ -62,12 +71,14 @@ __all__ = [
     "PiecewiseConstant",
     "PolygonalFlux",
     "RealLine",
+    "RoeSolver",
     "Solution",
     "TestFunction",
     "Wave",
     "check_all_fronts",
     "exact_box_solution",
     "exact_riemann_solution",
+    "expansion_shock",
     "godunov_flux",
     "is_admissible",
     "kruzkov_admissible",
@@ -81,6 +92,7 @@ __all__ = [
     "polynomial_bump",
     "rankine_hugoniot_ok",
     "riemann_data",
+    "roe_flux",
     "shock_speed",
     "solve_riemann",
     "uniform_nodes",

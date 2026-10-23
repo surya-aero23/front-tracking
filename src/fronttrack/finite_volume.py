@@ -1,4 +1,4 @@
-"""A Godunov finite-volume scheme, used as an independent comparison.
+"""Finite-volume schemes, used as an independent comparison.
 
 Front tracking computes the exact solution of an approximate problem (the
 polygonal flux); a finite-volume scheme computes an approximate solution of the
@@ -17,6 +17,12 @@ with the Godunov flux
 which is the flux of the exact Riemann solution at ``x/t = 0``.  It works in
 floating point: the scheme is only first order, so exact arithmetic would buy
 nothing.
+
+The Murman-Roe scheme is included as a cautionary example: it is
+conservative and consistent, but upwinds with the Rankine-Hugoniot speed and so
+cannot open a transonic rarefaction.  It converges to the expansion shock, a
+weak solution that violates the entropy condition (see
+:mod:`fronttrack.counterexamples`).
 
 The real line is truncated to a finite window.  The ghost cells hold the
 far-field states of the initial data, which is exact for as long as no wave
@@ -55,6 +61,22 @@ def godunov_flux(flux: Flux, left: np.ndarray, right: np.ndarray) -> np.ndarray:
         low = np.where(inside, np.minimum(low, value), low)
         high = np.where(inside, np.maximum(high, value), high)
     return np.where(increasing, low, high)
+
+
+def roe_flux(flux: Flux, left: np.ndarray, right: np.ndarray) -> np.ndarray:
+    """The Murman-Roe flux: upwind along the Rankine-Hugoniot speed.
+
+    ``F(a, b) = f(a)`` if the chord slope of ``f`` between ``a`` and ``b`` is
+    non-negative and ``f(b)`` otherwise.  This has no entropy fix.
+    """
+    left = np.asarray(left, dtype=float)
+    right = np.asarray(right, dtype=float)
+    f_left, f_right = flux.f_array(left), flux.f_array(right)
+    jump = right - left
+    safe = np.where(jump == 0, 1.0, jump)
+    # For equal states the chord degenerates; f is then the same either way.
+    speed = np.where(jump == 0, 0.0, (f_right - f_left) / safe)
+    return np.where(speed >= 0, f_left, f_right)
 
 
 def lipschitz_bound(flux: Flux, u_min, u_max, samples=4097) -> float:
@@ -112,13 +134,16 @@ class FiniteVolumeSolution:
         return float(np.sum(np.abs(values - self.averages[:, None])) * step)
 
 
-class GodunovSolver:
-    """The Godunov scheme for ``u_t + f(u)_x = 0`` on a finite window.
+class FiniteVolumeSolver:
+    """A conservative three-point scheme for ``u_t + f(u)_x = 0``.
 
     ``cells`` uniform cells cover ``window = (a, b)``; the time step is
     ``cfl * dx / max|f'|``, shortened at the end to land exactly on
-    ``t_final``.
+    ``t_final``.  Subclasses choose the numerical flux.
     """
+
+    #: ``numerical_flux(flux, left_states, right_states)`` at every interface.
+    numerical_flux = staticmethod(godunov_flux)
 
     def __init__(self, flux: Flux, cells: int, window, cfl=0.9):
         if cells < 1:
@@ -160,8 +185,24 @@ class GodunovSolver:
         while t < t_final:
             dt = min(dt_max, t_final - t)
             padded = np.concatenate(([ghost_left], u, [ghost_right]))
-            fluxes = godunov_flux(self.flux, padded[:-1], padded[1:])
+            fluxes = self.numerical_flux(self.flux, padded[:-1], padded[1:])
             u = u - dt / dx * np.diff(fluxes)
             t += dt
             steps += 1
         return FiniteVolumeSolution(edges=edges, averages=u, t=t_final, steps=steps)
+
+
+class GodunovSolver(FiniteVolumeSolver):
+    """The Godunov scheme: monotone, and convergent to the entropy solution."""
+
+    numerical_flux = staticmethod(godunov_flux)
+
+
+class RoeSolver(FiniteVolumeSolver):
+    """The Murman-Roe scheme, without entropy fix.
+
+    It is conservative, so its limits are weak solutions -- but not
+    necessarily the entropy solution.
+    """
+
+    numerical_flux = staticmethod(roe_flux)
