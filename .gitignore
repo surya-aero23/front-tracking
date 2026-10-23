@@ -219,14 +219,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# LaTeX build artefacts
-report/*.aux
-report/*.fdb_latexmk
-report/*.fls
-report/*.out
-report/*.synctex.gz
-report/*.toc
-report/main.pdf
+# The course report is kept locally and not published
+report/
 
 # Local editor/agent settings
 .claude/

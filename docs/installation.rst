@@ -25,14 +25,3 @@ The ``docs`` extra installs Sphinx and the theme used here:
 
    pip install -e ".[docs]"
    sphinx-build -W docs docs/_build/html
-
-Report
-------
-
-The course report in ``report/`` is LaTeX.  Its figures are produced by a
-script, and it builds with any recent TeX Live that includes ``latexmk``:
-
-.. code-block:: bash
-
-   python scripts/make_figures.py
-   latexmk -pdf -cd report/main.tex

@@ -1,8 +1,7 @@
 Theory
 ======
 
-This page summarises the mathematics the code implements.  The course
-report in ``report/`` has the full account, with references to the lectures.
+This page summarises the mathematics the code implements.
 
 Weak and entropy solutions
 --------------------------

@@ -94,8 +94,7 @@ and the [examples](https://surya-aero23.github.io/front-tracking-burgers/example
 | `src/fronttrack/` | the package: fluxes, envelopes, Riemann solver, event loop, domains, diagnostics, exact solutions, comparison schemes, plotting |
 | `tests/` | unit, property-based and convergence tests |
 | `docs/` | the Sphinx documentation |
-| `report/` | the course report (LaTeX) and its figures |
-| `scripts/make_figures.py` | regenerates every figure of the report |
+| `scripts/make_readme_figure.py` | regenerates the figure at the top of this README |
 
 ## Development
 
@@ -103,8 +102,7 @@ and the [examples](https://surya-aero23.github.io/front-tracking-burgers/example
 pip install -e ".[dev,docs]"
 pytest                                   # tests, property tests and doctests
 sphinx-build -W docs docs/_build/html    # documentation
-python scripts/make_figures.py           # report figures
-latexmk -pdf -cd report/main.tex         # report
+python scripts/make_readme_figure.py     # the README figure
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).

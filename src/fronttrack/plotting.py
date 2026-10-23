@@ -3,7 +3,7 @@
 Two views are useful: the fronts as straight segments in the x-t plane, which
 shows the whole wave structure and its interactions at a glance, and snapshots
 of ``u`` at fixed times.  Nothing here is needed by the solver; the figures of
-the report are produced from these functions.
+the documentation are produced from these functions.
 """
 
 from __future__ import annotations
