@@ -1,110 +1,126 @@
-# front-tracking-burgers
+# fronttrack
 
-A front-tracking solver for the one-dimensional scalar conservation law
+[![tests](https://github.com/surya-aero23/front-tracking-burgers/actions/workflows/tests.yml/badge.svg)](https://github.com/surya-aero23/front-tracking-burgers/actions/workflows/tests.yml)
+[![docs](https://github.com/surya-aero23/front-tracking-burgers/actions/workflows/docs.yml/badge.svg)](https://surya-aero23.github.io/front-tracking-burgers/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-    u_t + f(u)_x = 0,    u(x, 0) = u_0(x),    x in R
+**Exact front tracking for one-dimensional scalar conservation laws**
 
-with piecewise constant initial data, in particular the Riemann problem.
-Burgers' flux `f(u) = u^2 / 2` is the default; any flux can be supplied.
+    u_t + f(u)_x = 0,    u(x, 0) = u_0(x)
 
-Course project for MA 347B, *Hyperbolic Conservation Laws: Theory, Numerics
-and Applications*.  The write-up is in [`report/main.tex`](report/main.tex).
+`fronttrack` computes weak entropy solutions by the front-tracking method of
+Holden and Risebro. The flux is replaced by its piecewise linear interpolant
+`f_delta`, so that every Riemann problem resolves into finitely many
+discontinuities. The solution stays piecewise constant, every front moves in
+a straight line, and each collision is a new Riemann problem — solved in
+exact rational arithmetic, with no time step and no tolerance.
 
-## The method
+![Box data for Burgers' equation](docs/_static/readme.png)
 
-No mesh in `x` or `t` is used.  The flux is replaced by its piecewise linear
-interpolant `f_delta` on a grid of spacing `delta` in state space, so every
-Riemann solution is made of finitely many discontinuities and the solution
-stays piecewise constant for all time.  Each front then travels in a straight
-line until it meets a neighbour, and every collision is resolved as a new
-Riemann problem.
+**Documentation:** <https://surya-aero23.github.io/front-tracking-burgers/>
 
-The Riemann solver is the geometric one: the intermediate states are the
-vertices of the lower convex envelope of the flux when `u_l < u_r`, and of the
-upper concave envelope when `u_l > u_r`.  Straight segments are shocks and
-curved portions rarefactions.  This is correct for any flux, convex or not.
+## Features
 
-All arithmetic is exact (`fractions.Fraction`), so collision times are found
-without tolerances, a collision of three or more fronts is a single event, and
-conservation and total variation are reported exactly.
+- **Exact.** `fractions.Fraction` throughout: a triple collision is one
+  event, and mass, total variation and the entropy inequalities are checked
+  exactly.
+- **Any flux.** Riemann problems by the convex/concave envelope
+  construction: Burgers, concave and nonconvex fluxes such as
+  Buckley–Leverett.
+- **Real line or periodic**, with one event loop for both.
+- **Any data.** Piecewise constant data directly; smooth data by cell
+  averaging and rounding to the `delta` grid.
+- **Verified.** Rankine–Hugoniot, Oleinik and Kružkov on every front; the
+  weak form to round-off; property-based tests of L¹ contraction,
+  comparison, the maximum principle, finite speed and error bounds; exact
+  references (Burgers, Buckley–Leverett, shock formation from a sine wave);
+  and an independent Godunov finite-volume comparison.
 
-## Usage
+## Installation
 
-```python
-from fronttrack import Burgers, FrontTracker, PiecewiseConstant, riemann_data
-
-solver = FrontTracker(Burgers(), delta="1/8")
-
-solution = solver.solve(riemann_data(1, 0), t_final=2)
-solution.evaluate(x=0.9, t=2)      # Fraction(1, 1)
-solution.state_at(2)               # a PiecewiseConstant
-solution.total_variation(2)        # exact
-solution.interactions              # every collision, with time and position
-
-box = PiecewiseConstant(breakpoints=(0, 1), values=(0, 1, 0))
-solution = solver.solve(box, t_final=12)
+```bash
+git clone https://github.com/surya-aero23/front-tracking-burgers.git
+cd front-tracking-burgers
+pip install -e ".[dev]"
 ```
 
-Other fluxes work the same way:
+Python 3.10 or newer, with NumPy and Matplotlib.
 
-```python
-from fronttrack import BuckleyLeverett, ConcaveBurgers
+## Quick start
 
-FrontTracker(BuckleyLeverett(), delta="1/32").solve(riemann_data(1, 0), 1)
+```pycon
+>>> from fronttrack import Burgers, FrontTracker, PiecewiseConstant, riemann_data
+>>> solver = FrontTracker(Burgers(), delta="1/8")
+>>> solver.solve(riemann_data(1, 0), t_final=2).state_at(2)
+PiecewiseConstant(breakpoints=(Fraction(1, 1),), values=(Fraction(1, 1), Fraction(0, 1)))
+
+>>> box = PiecewiseConstant(breakpoints=(0, 1), values=(0, 1, 0))
+>>> solution = solver.solve(box, t_final=12)
+>>> solution.n_fronts, solution.n_interactions, solution.total_variation(12)
+(14, 5, Fraction(3, 4))
+
 ```
 
-Verification helpers live in `fronttrack.diagnostics`:
+Check the solution against the theory:
 
-```python
-from fronttrack import check_all_fronts, mass_defect, polynomial_bump, weak_form_residual
+```pycon
+>>> from fronttrack import check_all_fronts, mass_defect
+>>> all(report.ok for report in check_all_fronts(solution))
+True
+>>> mass_defect(solution, t=12, a=-20, b=20)
+Fraction(0, 1)
 
-all(report.ok for report in check_all_fronts(solution))   # entropy conditions
-mass_defect(solution, t=12, a=-60, b=60)                  # exactly 0
-weak_form_residual(solution, polynomial_bump(x_radius=20.0, t_radius=10.0))
 ```
 
-A first-order Godunov finite-volume scheme is included as an independent
-comparison. It works in floating point on a finite window whose ghost cells
-hold the far-field states:
+Periodic, smooth data — a shock forming from a sine wave:
 
-```python
-from fronttrack import GodunovSolver, exact_box_solution
+```pycon
+>>> import numpy as np
+>>> from fronttrack import Periodic, project
+>>> data = project(lambda x: np.sin(2 * np.pi * x), window=(0, 1), cells=64, delta="1/16")
+>>> ring = FrontTracker(Burgers(), delta="1/16", domain=Periodic(0, 1))
+>>> ring.solve(data, t_final=1).state_at(1).mass(0, 1)
+Fraction(0, 1)
 
-result = GodunovSolver(Burgers(), cells=400, window=(-1, 4)).solve(data, t_final=3)
-result.l1_error(exact_box_solution())   # or any callable u(x, t), e.g. solution.evaluate
 ```
 
-## Layout
+See the [user guide](https://surya-aero23.github.io/front-tracking-burgers/guide.html)
+and the [examples](https://surya-aero23.github.io/front-tracking-burgers/examples.html).
+
+## Repository layout
 
 | Path | Contents |
 | --- | --- |
-| `src/fronttrack/flux.py` | the `Flux` interface, Burgers, Buckley-Leverett, the polygonal `f_delta` |
-| `src/fronttrack/envelope.py` | lower convex and upper concave envelopes |
-| `src/fronttrack/riemann.py` | the Riemann solver |
-| `src/fronttrack/entropy.py` | Rankine-Hugoniot, Oleinik and Kruzkov conditions |
-| `src/fronttrack/solver.py` | the event loop that tracks the fronts |
-| `src/fronttrack/solution.py` | the computed solution as a function of `(x, t)` |
-| `src/fronttrack/finite_volume.py` | the Godunov scheme used for comparison |
-| `src/fronttrack/diagnostics.py` | entropy, weak form, conservation and `L1` error |
-| `src/fronttrack/domain.py` | the real line; the hook for a periodic domain |
-| `tests/` | the verification suite |
+| `src/fronttrack/` | the package: fluxes, envelopes, Riemann solver, event loop, domains, diagnostics, exact solutions, comparison schemes, plotting |
+| `tests/` | unit, property-based and convergence tests |
+| `docs/` | the Sphinx documentation |
+| `report/` | the course report (LaTeX) and its figures |
 | `scripts/make_figures.py` | regenerates every figure of the report |
 
-## Running
+## Development
 
 ```bash
-python -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]"
-pytest
-python scripts/make_figures.py
-latexmk -pdf -cd report/main.tex
+pip install -e ".[dev,docs]"
+pytest                                   # tests, property tests and doctests
+sphinx-build -W docs docs/_build/html    # documentation
+python scripts/make_figures.py           # report figures
+latexmk -pdf -cd report/main.tex         # report
 ```
 
-Building the report needs LaTeX with the `caption`, `enumitem` and `listings`
-packages. Without admin rights, TinyTeX installs into `~/.TinyTeX` and links its
-binaries into `~/.local/bin`:
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-```bash
-curl -fsSL https://yihui.org/tinytex/install-bin-unix.sh | sh
-tlmgr install latexmk caption enumitem listings
-```
+## Background
+
+This started as the course project for MA 347B, *Hyperbolic Conservation
+Laws: Theory, Numerics and Applications*, at the Indian Institute of
+Science. The method follows H. Holden and N. H. Risebro, *Front Tracking for
+Hyperbolic Conservation Laws* (Springer, 2nd ed., 2015).
+
+## Citation
+
+If you use this code, please cite it using the metadata in
+[CITATION.cff](CITATION.cff).
+
+## License
+
+[MIT](LICENSE)

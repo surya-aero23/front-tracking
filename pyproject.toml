@@ -4,10 +4,38 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fronttrack"
-version = "0.1.0"
-description = "Front tracking for the 1D Burgers equation with piecewise constant data"
+version = "0.2.0"
+description = "Exact front tracking for one-dimensional scalar conservation laws"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "N Surya" }]
 requires-python = ">=3.10"
 dependencies = ["numpy", "matplotlib"]
+keywords = [
+    "conservation laws",
+    "front tracking",
+    "Burgers equation",
+    "entropy solution",
+    "Riemann problem",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.urls]
+Documentation = "https://surya-aero23.github.io/front-tracking-burgers/"
+Source = "https://github.com/surya-aero23/front-tracking-burgers"
+Issues = "https://github.com/surya-aero23/front-tracking-burgers/issues"
 
 [project.optional-dependencies]
 dev = ["pytest", "hypothesis"]
@@ -17,5 +45,5 @@ docs = ["sphinx>=7", "furo", "sphinx-copybutton"]
 where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "docs", "src"]
-addopts = "--doctest-modules --doctest-glob=*.rst --ignore=docs/conf.py"
+testpaths = ["tests", "docs", "src", "README.md"]
+addopts = "--doctest-modules --doctest-glob=*.rst --doctest-glob=README.md --ignore=docs/conf.py --ignore=scripts"

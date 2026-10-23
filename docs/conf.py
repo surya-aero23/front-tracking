@@ -40,6 +40,7 @@ plot_formats = [("png", 110)]
 plot_rcparams = {"figure.figsize": (7.5, 3.4), "font.size": 9}
 plot_pre_code = "import numpy as np\nimport matplotlib.pyplot as plt\nfrom fractions import Fraction"
 
+html_static_path = ["_static"]
 html_theme = "furo"
 html_title = "fronttrack"
 html_theme_options = {
