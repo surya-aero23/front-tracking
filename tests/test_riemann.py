@@ -77,3 +77,18 @@ def test_nonconvex_flux_gives_a_composite_wave():
 def test_states_must_be_nodes(burgers_flux):
     with pytest.raises(ValueError):
         solve_riemann(Fraction(1, 3), 1, burgers_flux)
+
+
+@pytest.mark.parametrize("flux_class", ["Burgers", "ConcaveBurgers"])
+def test_convexity_shortcut_agrees_with_the_envelope(flux_class):
+    import fronttrack.flux as flux_module
+    from fronttrack.flux import PolygonalFlux, uniform_nodes
+
+    base = getattr(flux_module, flux_class)()
+    nodes = uniform_nodes(-2, 2, Fraction(1, 4), extra=[Fraction(1, 3)])
+    fast = PolygonalFlux(base, nodes)
+    slow = PolygonalFlux(base, nodes)
+    slow.convexity = 0
+    for uL in nodes[::3]:
+        for uR in nodes[::2]:
+            assert solve_riemann(uL, uR, fast) == solve_riemann(uL, uR, slow)

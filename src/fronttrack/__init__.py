@@ -13,12 +13,14 @@ flux is the default; any :class:`~fronttrack.flux.Flux` can be used instead.
 
 from .diagnostics import (
     FrontReport,
+    RunStatistics,
     TestFunction,
     check_all_fronts,
     l1_distance,
     l1_error,
     mass_defect,
     polynomial_bump,
+    run_statistics,
     weak_form_residual,
 )
 from .counterexamples import expansion_shock
@@ -78,6 +80,7 @@ __all__ = [
     "PolygonalFlux",
     "RealLine",
     "RoeSolver",
+    "RunStatistics",
     "Solution",
     "TestFunction",
     "Wave",
@@ -101,6 +104,7 @@ __all__ = [
     "rankine_hugoniot_ok",
     "riemann_data",
     "roe_flux",
+    "run_statistics",
     "shock_speed",
     "solve_riemann",
     "uniform_nodes",

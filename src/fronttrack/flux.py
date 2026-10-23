@@ -26,6 +26,10 @@ class Flux(ABC):
     #: finite-volume comparison scheme only needs ``f`` at these points and at
     #: the two cell states.
     extrema: tuple = ()
+    #: ``+1`` if ``f`` is known to be strictly convex, ``-1`` if strictly
+    #: concave, ``0`` otherwise.  Only a shortcut: the Riemann solver then
+    #: skips the envelope where its answer is known in advance.
+    convexity: int = 0
 
     @abstractmethod
     def f(self, u) -> Fraction:
@@ -65,6 +69,7 @@ class Burgers(Flux):
 
     name = "burgers"
     extrema = (0,)
+    convexity = 1
 
     def f(self, u) -> Fraction:
         u = as_fraction(u)
@@ -85,6 +90,7 @@ class ConcaveBurgers(Flux):
 
     name = "concave-burgers"
     extrema = (0,)
+    convexity = -1
 
     def f(self, u) -> Fraction:
         u = as_fraction(u)
@@ -154,8 +160,11 @@ class PolygonalFlux(Flux):
         self.name = f"polygonal({base.name})"
         self.nodes: tuple[Fraction, ...] = tuple(nodes)
         self.values: tuple[Fraction, ...] = tuple(base.f(node) for node in nodes)
-        # A piecewise linear function attains its extrema at the nodes.
+        # A piecewise linear function attains its extrema at the nodes, and
+        # the interpolant of a strictly convex function at distinct nodes is
+        # strictly convex as a polygon: no three nodes are collinear.
         self.extrema = self.nodes
+        self.convexity = base.convexity
 
     @property
     def u_min(self) -> Fraction:

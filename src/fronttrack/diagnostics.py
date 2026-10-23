@@ -211,6 +211,47 @@ def weak_form_residual(solution: Solution, test_function: TestFunction,
     return space_time + initial_term
 
 
+@dataclass(frozen=True)
+class RunStatistics:
+    """What a front-tracking run cost.
+
+    ``max_active`` is the largest number of fronts alive at one time and
+    ``denominator_digits`` the length of the largest denominator among the
+    front origins, a measure of how much exact arithmetic costs.
+    """
+
+    fronts: int
+    interactions: int
+    max_active: int
+    denominator_digits: int
+
+
+def run_statistics(solution: Solution) -> RunStatistics:
+    """Count the fronts, interactions and arithmetic size of a run."""
+    events = []
+    for front in solution.fronts:
+        events.append((front.t0, 1))
+        if front.t_end is not None and not front.alive:
+            events.append((front.t_end, -1))
+    # At a common time deaths come first: the outgoing fronts replace them.
+    events.sort(key=lambda event: (event[0], event[1]))
+    active = peak = 0
+    for _, change in events:
+        active += change
+        peak = max(peak, active)
+    digits = max(
+        (len(str(max(front.x0.denominator, front.t0.denominator)))
+         for front in solution.fronts),
+        default=0,
+    )
+    return RunStatistics(
+        fronts=solution.n_fronts,
+        interactions=solution.n_interactions,
+        max_active=peak,
+        denominator_digits=digits,
+    )
+
+
 def l1_error(solution: Solution, reference, t, window, resolution=4000,
              extra_breaks=()) -> float:
     """The ``L^1`` distance to a reference solution at time ``t``.
