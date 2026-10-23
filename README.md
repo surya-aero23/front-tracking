@@ -63,6 +63,17 @@ mass_defect(solution, t=12, a=-60, b=60)                  # exactly 0
 weak_form_residual(solution, polynomial_bump(x_radius=20.0, t_radius=10.0))
 ```
 
+A first-order Godunov finite-volume scheme is included as an independent
+comparison. It works in floating point on a finite window whose ghost cells
+hold the far-field states:
+
+```python
+from fronttrack import GodunovSolver, exact_box_solution
+
+result = GodunovSolver(Burgers(), cells=400, window=(-1, 4)).solve(data, t_final=3)
+result.l1_error(exact_box_solution())   # or any callable u(x, t), e.g. solution.evaluate
+```
+
 ## Layout
 
 | Path | Contents |
@@ -73,6 +84,7 @@ weak_form_residual(solution, polynomial_bump(x_radius=20.0, t_radius=10.0))
 | `src/fronttrack/entropy.py` | Rankine-Hugoniot, Oleinik and Kruzkov conditions |
 | `src/fronttrack/solver.py` | the event loop that tracks the fronts |
 | `src/fronttrack/solution.py` | the computed solution as a function of `(x, t)` |
+| `src/fronttrack/finite_volume.py` | the Godunov scheme used for comparison |
 | `src/fronttrack/diagnostics.py` | entropy, weak form, conservation and `L1` error |
 | `src/fronttrack/domain.py` | the real line; the hook for a periodic domain |
 | `tests/` | the verification suite |
@@ -86,4 +98,13 @@ pip install -e ".[dev]"
 pytest
 python scripts/make_figures.py
 latexmk -pdf -cd report/main.tex
+```
+
+Building the report needs LaTeX with the `caption`, `enumitem` and `listings`
+packages. Without admin rights, TinyTeX installs into `~/.TinyTeX` and links its
+binaries into `~/.local/bin`:
+
+```bash
+curl -fsSL https://yihui.org/tinytex/install-bin-unix.sh | sh
+tlmgr install latexmk caption enumitem listings
 ```

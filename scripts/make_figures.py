@@ -10,6 +10,7 @@ The figures land in ``report/figures`` as PDFs.
 from __future__ import annotations
 
 import sys
+import time
 from fractions import Fraction
 from pathlib import Path
 
@@ -26,8 +27,10 @@ from fronttrack import (  # noqa: E402
     BuckleyLeverett,
     Burgers,
     FrontTracker,
+    GodunovSolver,
     PiecewiseConstant,
     PolygonalFlux,
+    exact_box_solution,
     exact_riemann_solution,
     l1_error,
     lower_convex_envelope,
@@ -41,6 +44,7 @@ from fronttrack import (  # noqa: E402
 FIGURES = ROOT / "report" / "figures"
 DELTA = Fraction(1, 8)
 TRACKED_STYLE = {"color": "#2471a3", "linewidth": 1.6}
+GODUNOV_STYLE = {"color": "#d35400", "linewidth": 1.4, "linestyle": "-."}
 
 
 def save(fig, name: str) -> None:
@@ -162,12 +166,84 @@ def figure_buckley_leverett() -> None:
     save(fig, "buckley_leverett")
 
 
+def timed(run, repeats=3):
+    """The best wall-clock time of ``repeats`` calls, and the last result."""
+    best = float("inf")
+    for _ in range(repeats):
+        start = time.perf_counter()
+        result = run()
+        best = min(best, time.perf_counter() - start)
+    return best, result
+
+
+def figure_finite_volume() -> None:
+    """Front tracking against the Godunov scheme on box data at t = 3.
+
+    Left: profiles at matched resolution.  Right: L1 error against the exact
+    solution as a function of CPU time, which also prints the table in the
+    report.  At t = 3 the fan has caught the shock (at t = 2), so the tracker
+    has resolved every fan front's collision with the shock by then.
+    """
+    data = PiecewiseConstant((0, 1), (0, 1, 0))
+    reference = exact_box_solution()
+    window, t = (-1, 4), 3
+    kinks = [0, np.sqrt(6)]
+
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.8))
+    tracked = FrontTracker(Burgers(), DELTA).solve(data, t)
+    godunov = GodunovSolver(Burgers(), 100, window).solve(data, t)
+    x = np.linspace(-0.5, 3.2, 1201)
+    axes[0].plot(x, [float(reference(Fraction(str(v)), t)) for v in x],
+                 color="black", linewidth=0.8, linestyle="--", label="exact")
+    axes[0].step(x, [float(tracked.evaluate(Fraction(str(v)), t)) for v in x],
+                 where="post", label=rf"front tracking, $\delta=1/{DELTA.denominator}$",
+                 **TRACKED_STYLE)
+    axes[0].step(godunov.edges[:-1], godunov.averages, where="post",
+                 label=f"Godunov, $\\Delta x={godunov.dx:g}$", **GODUNOV_STYLE)
+    axes[0].set_xlim(-0.5, 3.2)
+    axes[0].set_xlabel("$x$")
+    axes[0].set_ylabel("$u(x, 3)$")
+    axes[0].set_title("box data at $t = 3$")
+    axes[0].legend(fontsize=8, loc="upper left")
+    axes[0].set_ylim(-0.05, 1.05)
+
+    rows = []
+    for power in range(2, 9):
+        delta = Fraction(1, 2 ** power)
+        elapsed, solution = timed(lambda: FrontTracker(Burgers(), delta).solve(data, t))
+        error = l1_error(solution, reference, t, window, extra_breaks=kinks)
+        rows.append(("front tracking", f"1/{2 ** power}", elapsed, error))
+    for power in range(0, 7):
+        cells = 50 * 2 ** power
+        elapsed, result = timed(lambda: GodunovSolver(Burgers(), cells, window).solve(data, t))
+        error = result.l1_error(reference)
+        rows.append(("Godunov", f"{result.dx:g}", elapsed, error))
+
+    for method, marker, style in [("front tracking", "o", TRACKED_STYLE),
+                                  ("Godunov", "s", GODUNOV_STYLE)]:
+        times = [row[2] for row in rows if row[0] == method]
+        errors = [row[3] for row in rows if row[0] == method]
+        axes[1].loglog(times, errors, marker=marker, markersize=5,
+                       label=method, **style)
+    axes[1].set_xlabel("CPU time [s]")
+    axes[1].set_ylabel(r"$\|u_h - u\|_{L^1}$ at $t = 3$")
+    axes[1].set_title("error against cost")
+    axes[1].legend(fontsize=8)
+    axes[1].grid(True, which="both", linewidth=0.3)
+    save(fig, "finite_volume")
+
+    print(f"{'method':<16}{'delta/dx':>10}{'time [s]':>12}{'L1 error':>12}")
+    for method, size, elapsed, error in rows:
+        print(f"{method:<16}{size:>10}{elapsed:>12.4f}{error:>12.2e}")
+
+
 def main() -> None:
     figure_riemann_problems()
     figure_interactions()
     figure_convergence()
     figure_envelope()
     figure_buckley_leverett()
+    figure_finite_volume()
 
 
 if __name__ == "__main__":

@@ -48,3 +48,16 @@ def test_time_must_be_positive():
 def test_nonconvex_flux_has_no_closed_form_here():
     with pytest.raises(NotImplementedError):
         exact_riemann_solution(1, 0, BuckleyLeverett())
+
+
+def test_box_solution_before_and_after_the_fan_catches_the_shock():
+    from fronttrack.exact import exact_box_solution
+
+    solution = exact_box_solution()
+    # t = 1: fan on [0, 1], plateau up to the shock at 3/2.
+    assert solution(Fraction(1, 2), 1) == Fraction(1, 2)
+    assert solution(Fraction(5, 4), 1) == 1
+    assert solution(Fraction(7, 4), 1) == 0
+    # t = 8: the shock sits at sqrt(16) = 4.
+    assert solution(Fraction(39, 10), 8) == Fraction(39, 80)
+    assert solution(Fraction(41, 10), 8) == 0

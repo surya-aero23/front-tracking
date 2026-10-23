@@ -13,6 +13,8 @@ from abc import ABC, abstractmethod
 from bisect import bisect_left, bisect_right
 from fractions import Fraction
 
+import numpy as np
+
 from .rational import as_fraction
 
 
@@ -20,6 +22,10 @@ class Flux(ABC):
     """A scalar flux ``f(u)`` evaluated in exact rational arithmetic."""
 
     name: str = "flux"
+    #: The states where ``f`` has a local extremum.  The Godunov flux of the
+    #: finite-volume comparison scheme only needs ``f`` at these points and at
+    #: the two cell states.
+    extrema: tuple = ()
 
     @abstractmethod
     def f(self, u) -> Fraction:
@@ -35,11 +41,20 @@ class Flux(ABC):
     def __call__(self, u) -> Fraction:
         return self.f(u)
 
+    def f_array(self, u: np.ndarray) -> np.ndarray:
+        """``f`` on an array of floats, for the finite-volume scheme.
+
+        The default goes through the exact :meth:`f`, which is slow;
+        subclasses override it with a vectorised formula.
+        """
+        return np.vectorize(lambda value: float(self.f(value)))(u)
+
 
 class Burgers(Flux):
     """Burgers' flux ``f(u) = u^2 / 2``; strictly convex."""
 
     name = "burgers"
+    extrema = (0,)
 
     def f(self, u) -> Fraction:
         u = as_fraction(u)
@@ -48,11 +63,15 @@ class Burgers(Flux):
     def df(self, u) -> Fraction:
         return as_fraction(u)
 
+    def f_array(self, u: np.ndarray) -> np.ndarray:
+        return 0.5 * u * u
+
 
 class ConcaveBurgers(Flux):
     """``f(u) = -u^2 / 2``; strictly concave, so the wave rules are reversed."""
 
     name = "concave-burgers"
+    extrema = (0,)
 
     def f(self, u) -> Fraction:
         u = as_fraction(u)
@@ -60,6 +79,9 @@ class ConcaveBurgers(Flux):
 
     def df(self, u) -> Fraction:
         return -as_fraction(u)
+
+    def f_array(self, u: np.ndarray) -> np.ndarray:
+        return -0.5 * u * u
 
 
 class BuckleyLeverett(Flux):
@@ -70,6 +92,8 @@ class BuckleyLeverett(Flux):
     """
 
     name = "buckley-leverett"
+    # f'(u) = 2 M u (1 - u) / (u^2 + M (1 - u)^2)^2 vanishes only at 0 and 1.
+    extrema = (0, 1)
 
     def __init__(self, mobility=Fraction(1, 2)):
         self.mobility = as_fraction(mobility)
@@ -80,6 +104,10 @@ class BuckleyLeverett(Flux):
         if denominator == 0:
             raise ValueError("Buckley-Leverett flux is singular at this state")
         return u * u / denominator
+
+    def f_array(self, u: np.ndarray) -> np.ndarray:
+        mobility = float(self.mobility)
+        return u * u / (u * u + mobility * (1 - u) ** 2)
 
 
 class PolygonalFlux(Flux):
@@ -99,6 +127,8 @@ class PolygonalFlux(Flux):
         self.name = f"polygonal({base.name})"
         self.nodes: tuple[Fraction, ...] = tuple(nodes)
         self.values: tuple[Fraction, ...] = tuple(base.f(node) for node in nodes)
+        # A piecewise linear function attains its extrema at the nodes.
+        self.extrema = self.nodes
 
     @property
     def u_min(self) -> Fraction:

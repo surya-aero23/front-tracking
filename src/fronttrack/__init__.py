@@ -29,7 +29,8 @@ from .entropy import (
     shock_speed,
 )
 from .envelope import lower_convex_envelope, upper_concave_envelope
-from .exact import exact_riemann_solution
+from .exact import exact_box_solution, exact_riemann_solution
+from .finite_volume import FiniteVolumeSolution, GodunovSolver, godunov_flux
 from .flux import (
     BuckleyLeverett,
     Burgers,
@@ -50,10 +51,12 @@ __all__ = [
     "Burgers",
     "ConcaveBurgers",
     "Domain",
+    "FiniteVolumeSolution",
     "Flux",
     "Front",
     "FrontReport",
     "FrontTracker",
+    "GodunovSolver",
     "Interaction",
     "PiecewiseConstant",
     "PolygonalFlux",
@@ -62,7 +65,9 @@ __all__ = [
     "TestFunction",
     "Wave",
     "check_all_fronts",
+    "exact_box_solution",
     "exact_riemann_solution",
+    "godunov_flux",
     "is_admissible",
     "kruzkov_admissible",
     "l1_error",

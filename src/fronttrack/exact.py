@@ -51,3 +51,33 @@ def exact_riemann_solution(uL, uR, flux: Flux | None = None) -> Callable:
         return xi if convex else -xi
 
     return solution
+
+
+def exact_box_solution(height=1, width=1) -> Callable:
+    """The exact Burgers solution for box data ``u0 = height`` on ``[0, width]``.
+
+    A fan opens at ``x = 0`` and a shock of speed ``height / 2`` leaves
+    ``x = width``.  The fan's head catches the shock at ``t* = 2 width /
+    height``; afterwards the shock sits at ``sqrt(2 height width t)``, as
+    follows from conservation of the mass ``height * width``.
+    """
+    height, width = as_fraction(height), as_fraction(width)
+    if height <= 0 or width <= 0:
+        raise ValueError("the box must have positive height and width")
+    catch_up = 2 * width / height
+
+    def solution(x, t):
+        x, t = as_fraction(x), as_fraction(t)
+        if t <= 0:
+            raise ValueError("the exact solution is defined for t > 0")
+        if x <= 0:
+            return Fraction(0)
+        if t <= catch_up:
+            if x < height * t:
+                return x / t
+            return height if x < width + height * t / 2 else Fraction(0)
+        # x/t is the fan's value up to the shock at sqrt(2 height width t),
+        # compared here through squares to stay in exact arithmetic.
+        return x / t if x * x < 2 * height * width * t else Fraction(0)
+
+    return solution
