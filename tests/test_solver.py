@@ -137,3 +137,13 @@ def test_times_outside_the_interval_are_rejected(tracker):
 def test_delta_must_be_positive():
     with pytest.raises(ValueError):
         FrontTracker(Burgers(), 0)
+
+
+def test_a_collision_exactly_at_the_final_time_is_counted_once():
+    # Shocks of speed 3/2 and 1/2 leave x = 0 and x = 1 and meet at t = 1.
+    data = PiecewiseConstant((0, 1), (2, 1, 0))
+    solution = FrontTracker(Burgers(), Fraction(1, 4)).solve(data, 1)
+    assert solution.n_interactions == 1
+    state = solution.state_at(1)
+    assert state.breakpoints == (Fraction(3, 2),)
+    assert state.values == (2, 0)

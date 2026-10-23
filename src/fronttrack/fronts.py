@@ -51,15 +51,18 @@ class Front:
         """Whether the front carries the solution at time ``t``.
 
         The interval is taken half open, ``[t0, t_end)``, so that at an
-        interaction time only the outgoing fronts count.  The final time is
-        the exception: there nothing comes after, so the interval is closed.
+        interaction time only the outgoing fronts count.  A front that
+        survives to the final time is the exception: nothing comes after it,
+        so its interval is closed.  A front destroyed by a collision exactly
+        at the final time is not, since the outgoing fronts replace it there.
         """
         t = as_fraction(t)
         if t < self.t0:
             return False
         if self.t_end is None:
             return True
-        return t < self.t_end or (t == self.t_end == as_fraction(t_final))
+        survives = self.alive and t == self.t_end == as_fraction(t_final)
+        return t < self.t_end or survives
 
     def endpoints(self, t_final) -> tuple[tuple[Fraction, Fraction], tuple[Fraction, Fraction]]:
         """The segment ``((x0, t0), (x_end, t_end))`` in the x-t plane."""

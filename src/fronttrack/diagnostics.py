@@ -11,7 +11,9 @@ claims to deliver:
 * the conserved quantity balances the boundary flux (:func:`mass_defect`).
 
 :func:`l1_error` measures the distance to a reference solution, which is how
-convergence as ``delta -> 0`` is observed.
+convergence as ``delta -> 0`` is observed, and :func:`l1_distance` is the
+exact distance between two piecewise constant functions, used to check
+Kruzkov's ``L^1`` contraction.
 """
 
 from __future__ import annotations
@@ -22,6 +24,7 @@ from fractions import Fraction
 import numpy as np
 
 from .entropy import kruzkov_admissible, oleinik_admissible, rankine_hugoniot_ok
+from .initial_data import PiecewiseConstant
 from .rational import as_fraction
 from .solution import Solution
 
@@ -75,6 +78,28 @@ def mass_defect(solution: Solution, t, a, b) -> Fraction:
     flux_out = solution.flux.f(initial(b))
     change = solution.mass(t, a, b) - solution.mass(0, a, b)
     return change - t * (flux_in - flux_out)
+
+
+def l1_distance(u: PiecewiseConstant, v: PiecewiseConstant, window=None) -> Fraction:
+    """The exact ``L^1`` distance between two piecewise constant functions.
+
+    Without a ``window`` the distance is over the whole line, which is finite
+    only when the two functions share their states at both infinities.
+    """
+    if window is None:
+        if u.u_left != v.u_left or u.u_right != v.u_right:
+            raise ValueError("the functions differ at infinity; give a window")
+        points = sorted(set(u.breakpoints) | set(v.breakpoints))
+        if not points:
+            return Fraction(0)
+    else:
+        a, b = (as_fraction(value) for value in window)
+        points = sorted({a, b} | {x for x in u.breakpoints + v.breakpoints if a < x < b})
+    return sum(
+        (abs(u((left + right) / 2) - v((left + right) / 2)) * (right - left)
+         for left, right in zip(points, points[1:])),
+        Fraction(0),
+    )
 
 
 @dataclass(frozen=True)
