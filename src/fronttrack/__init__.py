@@ -31,7 +31,11 @@ from .entropy import (
     shock_speed,
 )
 from .envelope import lower_convex_envelope, upper_concave_envelope
-from .exact import exact_box_solution, exact_riemann_solution
+from .exact import (
+    exact_box_solution,
+    exact_riemann_solution,
+    exact_sine_solution,
+)
 from .finite_volume import (
     FiniteVolumeSolution,
     FiniteVolumeSolver,
@@ -51,6 +55,7 @@ from .flux import (
 from .fronts import Front
 from .initial_data import PiecewiseConstant, riemann_data
 from .plotting import plot_fronts, plot_snapshot
+from .projection import project
 from .riemann import Wave, solve_riemann
 from .solution import Interaction, Solution
 from .solver import FrontTracker
@@ -79,6 +84,7 @@ __all__ = [
     "check_all_fronts",
     "exact_box_solution",
     "exact_riemann_solution",
+    "exact_sine_solution",
     "expansion_shock",
     "godunov_flux",
     "is_admissible",
@@ -91,6 +97,7 @@ __all__ = [
     "plot_fronts",
     "plot_snapshot",
     "polynomial_bump",
+    "project",
     "rankine_hugoniot_ok",
     "riemann_data",
     "roe_flux",

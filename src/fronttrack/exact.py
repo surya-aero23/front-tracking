@@ -232,3 +232,52 @@ def _numerical_riemann_solution(uL, uR, flux: Flux) -> Callable:
 
     solution.waves = waves
     return solution
+
+
+def exact_sine_solution(amplitude=1.0) -> Callable:
+    """The entropy solution of Burgers' equation for ``u0 = A sin(2 pi x)``, period 1.
+
+    Characteristics ``x = xi + t A sin(2 pi xi)`` first cross at the breaking
+    time ``t_b = 1 / (2 pi A)``.  By the symmetry ``u(1 - x) = -u(x)`` the
+    shock that forms sits still at ``x = 1/2``, and for ``0 <= x < 1/2`` the
+    solution is carried by the characteristics from ``[0, xi_s]`` that have
+    not yet reached it.  Values are floats.
+    """
+    amplitude = float(amplitude)
+    if amplitude <= 0:
+        raise ValueError("the amplitude must be positive")
+
+    def foot(x, t, upper):
+        # x(xi) is increasing on [0, upper]; invert it by bisection.
+        low, high = 0.0, upper
+        for _ in range(80):
+            middle = 0.5 * (low + high)
+            if middle + t * amplitude * np.sin(2 * np.pi * middle) < x:
+                low = middle
+            else:
+                high = middle
+        return 0.5 * (low + high)
+
+    def last_foot(t):
+        """The foot of the characteristic arriving at x = 1/2 from the left."""
+        if 2 * np.pi * amplitude * t <= 1:
+            return 0.5
+        turn = np.arccos(-1 / (2 * np.pi * amplitude * t)) / (2 * np.pi)
+        return foot(0.5, t, turn)
+
+    def left_half(x, t):
+        """The solution for ``0 <= x <= 1/2``, as the limit from the left."""
+        return float(amplitude * np.sin(2 * np.pi * foot(x, t, last_foot(t))))
+
+    def solution(x, t):
+        x, t = float(x), float(t)
+        if t < 0:
+            raise ValueError("the solution is defined for t >= 0")
+        x = x % 1.0
+        if x < 0.5:
+            return left_half(x, t)
+        # Odd symmetry about 1/2; at the shock itself take the right value.
+        return -left_half(1.0 - x, t)
+
+    solution.breaking_time = 1 / (2 * np.pi * amplitude)
+    return solution
